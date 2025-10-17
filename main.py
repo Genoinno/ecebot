@@ -239,14 +239,16 @@ async def borrow(ctx: commands.Context):
         inter: discord.Interaction = await bot.wait_for("interaction", check=modal_check)
         name = inter.data["components"][0]["components"][0]["value"]
         phone_number = inter.data["components"][1]["components"][0]["value"]
+        kelas = inter.data["components"][2]["components"][0]["value"]
         renewed_date = datetime.datetime.now() + datetime.timedelta(days=7)
         await inter.response.send_message(f"`( ╹ -╹)? Hmm?` *{book.full_title}*? " + random.choice(MESSAGE_SPLASH), ephemeral=True)
 
-        latest_record = await BorrowingRecordDB.get_latest(session)
+        latest_record = (await BorrowingRecordDB.get_latest(session))
+        latest_record_id = (latest_record.id if latest_record else 0) + 1
 
         file = discord.File(
             build_receipt_image(
-                book, name, (latest_record.id if latest_record else 0) + 1, renewed_date.strftime(TIMEFORMAT)
+                book, name, latest_record_id, renewed_date.strftime(TIMEFORMAT)
             ),
             "receipt.png",
         )
@@ -254,7 +256,7 @@ async def borrow(ctx: commands.Context):
         em = (
             discord.Embed(
                 title=name,
-                description=f"**{ctx.author.mention}** has borrowed a book!\n\n{name} • {phone_number}",
+                description=f"**{ctx.author.mention}** has borrowed a book!\n\n{name} • {kelas} • {phone_number}",
                 color=discord.Color.yellow(),
                 timestamp=datetime.datetime.now(),
             )
@@ -269,13 +271,15 @@ async def borrow(ctx: commands.Context):
             session,
             int(ctx.author.id),
             book.isbn,
-            f"{name}:{phone_number}"
+            f"{name}:{phone_number}:{kelas}"
         )
 
-        await channel.send(librarian_role.mention, embed=em, file=file)
+        message = await channel.send(librarian_role.mention, embed=em, file=file)
         await msg.edit(
             content=f"**`[{step}/{last_step}, Pending]`** Done! `(,,> ᴗ <,,)`\nYour request is being validated by us.\n**We will notify you shortly via DM**"
         )
+
+        await BorrowingRecordDB.add_message_id(session, latest_record_id, message.id)
        
 
 @bot.command(aliases=["acc", "ac"])
@@ -287,7 +291,7 @@ async def accept(ctx: commands.Context, receipt_id: int):
     async with AsyncSessionLocal() as session:
         record = await BorrowingRecordDB.get_by_id(session, receipt_id)
         book = await BookDB.get_by_id(session, record.book_isbn, True)
-        name, phone_number = record.remarks.split(":")
+        name, phone_number, _ = record.remarks.split(":")
         
         if not record or not record.status == BorrowingStatus.PENDING:
             return await ctx.send("Record does not exist or cannot be approved!")
@@ -314,10 +318,13 @@ async def accept(ctx: commands.Context, receipt_id: int):
         
         match msg.content:
             case "yes":
-                await (bot.get_guild(EC_SERVER_ID).get_member(record.user_id)).send(f"Hi! We have approved your request\n**Please come to Language Room (Ruang Bahasa) afterschool!**", embed=em, file=file)
+                member = (bot.get_guild(EC_SERVER_ID).get_member(record.user_id))
+                await (await record_channel.fetch_message(record.message_id)).add_reaction("✅")
+                await member.send(f"Hi! We have approved your request\n**Please come to Language Room (Ruang Bahasa) afterschool!**", embed=em, file=file)
+                await member.add_roles(patron_role)
                 await BorrowingRecordDB.approve_record_by_id(session, receipt_id)
                 return await ctx.send(f"Approved **{receipt_id}**!")
-            case "no":
+            case _:
                 return await ctx.send("Aborting...")
             
 @bot.command(aliases=["den"])
@@ -335,18 +342,20 @@ async def denied(ctx: commands.Context, receipt_id: int):
         
         match msg.content:
             case "yes":
-                try:
-                    dm = await (bot.get_guild(EC_SERVER_ID).get_member(record.user_id)).create_dm()
-                except discord.Forbidden:
-                    await bot_channel.send(f"{ctx.author.mention} Your request has been approved! (I cannot send your a dm)\n**Please come to **Ruang Bahasa** afterschool!")
-                else:
-                    await dm.send("Your request has been denied: Please contact the @librarian or open a ticker for more information!")
+                await (await record_channel.fetch_message(record.message_id)).add_reaction("❌")
                 await (bot.get_guild(EC_SERVER_ID).get_member(record.user_id)).send("")
                 await BookDB.borrow(session, record.book_isbn, True)
                 await BorrowingRecordDB.disapprove_record_by_id(session, int(receipt_id))
-                return await ctx.send(f"Denied **{receipt_id}**!")
+                await ctx.send(f"Denied **{receipt_id}**!")
+
+                try:
+                    dm = await (bot.get_guild(EC_SERVER_ID).get_member(record.user_id)).create_dm()
+                except discord.Forbidden:
+                    await bot_channel.send(f"{ctx.author.mention} Your request has been debued! (I cannot send you a dm)\n**Please come to **Ruang Bahasa** afterschool!")
+                else:
+                    await dm.send("Your request has been denied: Please contact the @librarian or open a ticket for more information!")
     
-            case "no":
+            case _:
                 return await ctx.send("Aborting...")
 
 
@@ -359,7 +368,7 @@ async def renew(ctx: commands.Context, patron: discord.Member):
     match msg.content:
         case "yes":
             pass
-        case "no":
+        case _:
             return await ctx.send("Aborting...")
         
     async with AsyncSessionLocal() as session:
@@ -371,7 +380,7 @@ async def renew(ctx: commands.Context, patron: discord.Member):
         await BorrowingRecordDB.renew(session, record.id)
 
         book = await BookDB.get_by_id(session, record.book_isbn, True)
-        name, phone_number = record.remarks.split(":")
+        name, phone_number, _ = record.remarks.split(":")
         file = discord.File(
             build_renewed_receipt_image(
                 book,

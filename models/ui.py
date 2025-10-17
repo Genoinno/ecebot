@@ -114,10 +114,17 @@ class AgreementView(discord.ui.View):
         await interaction.response.send_message("Okay we understand...", ephemeral=True)
 
 class BorrowingForm(ui.Modal, title="Borrowing Form"):
-    name = ui.TextInput(label="Fullname", placeholder="Enter your fullname")
+    name = ui.TextInput(
+        label="Fullname", 
+        placeholder="Enter your fullname"
+    )
     phone = ui.TextInput(
         label="Phone Number",
-        placeholder="Enter your phone number (e.g, 08773847183287)",
+        placeholder="Enter your phone number (e.g, 08773847183287)"
+    )
+    kelas = ui.TextInput(
+        label="Class",
+        placeholder="Enter your Class (e.g, XIII SIJA 2 )"
     )
 
     def __init__(self, **kwargs):

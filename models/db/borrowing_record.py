@@ -24,6 +24,7 @@ class BorrowingRecordDB(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(BigInteger, nullable=False) #ToDo: Create user tables
     book_isbn = Column(String(15), ForeignKey('books.isbn'), nullable=False)
+    message_id = Column(BigInteger, nullable=True)
     
     borrow_date = Column(DateTime, default=datetime.datetime.now(datetime.timezone.utc))
     due_date = Column(DateTime, nullable=False)
@@ -72,7 +73,7 @@ class BorrowingRecordDB(Base):
     @staticmethod
     async def user_is_borrowing(session, user_id):
         records = (await BorrowingRecordDB.get_all_by_patron(session, user_id))
-        if records and records[0].status == BorrowingStatus.BORROWING:
+        if records and records[0].status in [BorrowingStatus.BORROWING, BorrowingStatus.PENDING]:
             return True
         return False
     
@@ -103,4 +104,10 @@ class BorrowingRecordDB(Base):
         record = await BorrowingRecordDB.get_by_id(session, id)
         record.return_date = datetime.datetime.now()
         record.status = BorrowingStatus.RETURNED
+        await session.commit()
+
+    @staticmethod
+    async def add_message_id(session, id, message_id):
+        record = await BorrowingRecordDB.get_by_id(session, id)
+        record.message_id = message_id
         await session.commit()
