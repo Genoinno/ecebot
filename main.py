@@ -358,6 +358,10 @@ async def denied(ctx: commands.Context, receipt_id: int):
             case _:
                 return await ctx.send("Aborting...")
 
+@bot.command()
+@commands.has_role(LIBRARIAN_ROLE)
+async def tolongbeliinmartakab(ctx: commands.Context):
+    await ctx.send("Okay! Ordering Martakab....")
 
 @bot.command()
 @commands.has_role(LIBRARIAN_ROLE)
@@ -427,7 +431,7 @@ async def _return(ctx: commands.Context, patron: discord.Member): #What if the u
     match msg.content:
         case "yes":
             pass
-        case "no":
+        case _:
             return await ctx.send("Aborting.================================..")
         
     async with AsyncSessionLocal() as session:
@@ -439,7 +443,7 @@ async def _return(ctx: commands.Context, patron: discord.Member): #What if the u
         book = await BookDB.get_by_id(session, record.book_isbn, True)
         await BorrowingRecordDB.finish(session, record.id)
         await BookDB.borrow(session, book.isbn, True)
-        name, phone_number = record.remarks.split(":")
+        name, phone_number, _ = record.remarks.split(":")
         file = discord.File(
             build_returned_receipt_image(
                 book,
@@ -473,6 +477,13 @@ async def _return(ctx: commands.Context, patron: discord.Member): #What if the u
         )
 
         await patron.send(embed=em, file=file)
+
+@bot.command()
+async def rules(ctx):
+    with open("policy.txt", "rb") as f:
+        file = discord.File(f)
+
+    await ctx.send(file=file)
 
 os.environ["JISHAKU_NO_UNDERSCORE"] = "true"
 os.environ["JISHAKU_RETAIN"] = "true"
