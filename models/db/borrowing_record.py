@@ -10,7 +10,7 @@ from enum import Enum as PyEnum
 
 load_dotenv()
 
-BORROWED_DAYS = int(os.environ["Borrowed_DAYS"])
+BORROWED_DAYS = int(os.environ["BORROWED_DAYS"])
 
 class BorrowingStatus(str, PyEnum):
     BORROWING       = "borrowing"
