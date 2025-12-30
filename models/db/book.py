@@ -1,6 +1,6 @@
 from .db import Base
 from models.book import Book
-from sqlalchemy import Column, Integer, String, JSON, select
+from sqlalchemy import Column, Integer, String, Text, JSON, select
 from sqlalchemy.orm import relationship
 
 class BookDB(Base):
@@ -8,13 +8,14 @@ class BookDB(Base):
     isbn = Column(String(15), primary_key=True)
 
     identifiers = Column(JSON)        # {"Openlib": "...", "ISBN_13": "..."}
-    details = Column(JSON)            # {"description": "...", "full_title": "..."}
+
     available = Column(Integer)      
 
     url = Column(String(255))
     emoji = Column(String(10))        # stores an emoji character
     publish_date = Column(String(50))
     title = Column(String(255))
+    description = Column(Text(300))
     cover = Column(String(255))
 
     # JSON arrays
