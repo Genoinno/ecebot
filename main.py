@@ -1,3 +1,4 @@
+import json
 import discord
 import os
 import datetime
@@ -28,9 +29,7 @@ from utils import (
     BOT_CHANNEL_ID,
     build_receipt_image,
     build_renewed_receipt_image,
-    build_returned_receipt_image,
-    embed_title_parse,
-    get_records_stats,
+    build_returned_receipt_image
 )
 
 # Load the .env file, you need to make a .env file with the TOKEN variable
@@ -75,9 +74,7 @@ async def on_ready():
         await conn.run_sync(Base.metadata.create_all)
 
     print("Successfuly fetched books!")
-    print(librarian_role)
     print(f"Logged in as {bot.user}")
-
 
 @bot.event
 async def on_command_error(ctx: commands.Context, error):
@@ -241,7 +238,7 @@ async def borrow(ctx: commands.Context):
         phone_number = inter.data["components"][1]["components"][0]["value"]
         kelas = inter.data["components"][2]["components"][0]["value"]
         renewed_date = datetime.datetime.now() + datetime.timedelta(days=7)
-        await inter.response.send_message(f"`( ╹ -╹)? Hmm?` *{book.full_title}*? " + random.choice(MESSAGE_SPLASH), ephemeral=True)
+        await inter.response.send_message(f"`( ╹ -╹)? Hmm?` *{book.title}*? " + random.choice(MESSAGE_SPLASH), ephemeral=True)
 
         latest_record = (await BorrowingRecordDB.get_latest(session))
         latest_record_id = (latest_record.id if latest_record else 0) + 1
@@ -402,11 +399,12 @@ async def renew(ctx: commands.Context, patron: discord.Member):
                 timestamp=record.borrow_date,
             )
             .set_author(name=patron.name, icon_url=patron.avatar.url)
-            .set_footer(text=f"Returned by {ctx.author.name}", icon_url=ctx.author.avatar.url)
+            .set_footer(text=f"Renewed by {ctx.author.name}", icon_url=ctx.author.avatar.url)
             .set_image(url="attachment://renewed.png")
             .set_thumbnail(url=book.get_cover_url("large"))
         )
-        await (record_channel).send(embed=em, file=file)
+        msg = await record_channel.fetch_message(record.message_id)
+        await msg.reply(embed=em, file=file)
         await ctx.send(f"`٩(>ᴗ<)و` I renewed your book!\n{patron.mention} Please come to **Language Room** to confirm your renewal after school and bring **the book**.\nThank you!")
 
         file = discord.File(
@@ -464,7 +462,8 @@ async def _return(ctx: commands.Context, patron: discord.Member): #What if the u
             .set_image(url="attachment://returned.png")
             .set_thumbnail(url=book.get_cover_url("large"))
         )
-        await (record_channel).send(embed=em, file=file)
+        msg = await record_channel.fetch_message(record.message_id)
+        await msg.reply(embed=em, file=file)
         await ctx.send(f"`(,,⟡o⟡,,)` _`Woah!`_ Finished? already?! `( ˶° ᗜ°)!!`\nThat was fast! I hope you like the book!\n{patron.mention} Please come and return the book at the library after school!")
 
         file = discord.File(
