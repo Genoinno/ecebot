@@ -15,7 +15,7 @@ class LibraryDropdown(discord.ui.Select):
         self.user = user
         options = [
             discord.SelectOption(
-                label=book.full_title,
+                label=book.title,
                 value=book.identifiers.isbn_13[0],
                 description="By " + book.main_author,
                 emoji=book.emoji,
@@ -40,7 +40,7 @@ class BookshelfDropdown(LibraryDropdown):
         
         img = book.get_cover_url("large")
         self.embed.clear_fields()
-        self.embed.title = f"**{book.full_title}**"
+        self.embed.title = f"**{book.title}**"
         self.embed.url = book.url
         self.embed.description = (
             book.description[:297] + f"[...]({book.url})"
@@ -131,5 +131,5 @@ class BorrowingForm(ui.Modal, title="Borrowing Form"):
         self.book = kwargs.pop("selected_book")
         super().__init__(**kwargs)
         self.add_item(
-            ui.TextInput(label="Book", required=False, default=self.book.full_title)
+            ui.TextInput(label="Book", required=False, default=self.book.title)
         )
