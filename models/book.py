@@ -16,7 +16,6 @@ class Identifiers:
 class Book:
     def __init__(self, payload: BookDB):
         self.__payload = payload
-        self.__details = json.loads(payload.details)
         self.__identifiers = json.loads(payload.identifiers)
         self._publishers = json.loads(payload.publishers)
         self._authors =  json.loads(payload.authors)
@@ -28,7 +27,6 @@ class Book:
             pass
 
         print(self.__identifiers)
-        
 
     def __repr__(self):
         return self.title
@@ -68,12 +66,10 @@ class Book:
 
     @property
     def description(self):
-        description =  (
-            self.__details.get(
-                "description", {"value": "*Description is not provided*"}
-            )
-        )
-        return description if isinstance(description, str) else description["value"]
+        output = self.__payload.description or "*No description provided.*"
+        output = output.replace("\\r\\n", "\n").replace("\\n", "\n")
+        output = bytes(output, "utf-8").decode("unicode_escape")
+        return output
     
     @property
     def authors(self):
@@ -82,10 +78,6 @@ class Book:
     @property
     def main_author(self):
         return self.authors[0]["name"] if self.authors else "*Author not provided*"
-
-    @property
-    def full_title(self):
-        return self.__details.get("full_title") or self.title
 
     @property
     def main_author_olid(self):
@@ -115,13 +107,3 @@ class Book:
                 ...
 
         return f"https://covers.openlibrary.org/a/olid/{self.main_author_olid}-{size}.jpg"
-
-
-# record = Record(data)
-# for k, v in data["records"].items():
-#     print(json.dumps(v["data"], indent=4))
-#     book = Book(book_data, v["details"]["details"])
-#     print(book.description)
-#     print(book.get_cover_url("medium"))
-#     print(book.identifiers.isbn_13)
-#     print(book.main_author_olid)
