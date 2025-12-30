@@ -82,7 +82,7 @@ def _build_image(mode: str, book: Book, patron: str, receipt: int):
 
     LEFT_SIDE_INFO_X = 119
     RIGHT_SIDE_INFO_X = img_width - 580
-    draw.text((LEFT_SIDE_INFO_X, 596), book.full_title, fill="black", font=font(35))
+    draw.text((LEFT_SIDE_INFO_X, 596), book.title, fill="black", font=font(35))
     draw.text((LEFT_SIDE_INFO_X, 724), book.main_author, fill="black", font=font(35))
 
     draw.text(
