@@ -5,6 +5,7 @@ from .ui import (
     BorrowingForm,
 )
 from .book import Book
+from .spotify import Spotify
 
 API = "http://openlibrary.org/api/volumes/brief/json/"
 BOOK_COLLECTIONS = ["9780241252086", "9781840228038", "9781401308773", "9780142414460", "9786020495422", "9786020476612", "9766020495422", "9781484746691"]

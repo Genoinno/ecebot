@@ -4,6 +4,7 @@ import wmi
 
 from discord.ext import commands
 from googletrans import Translator
+from models import Spotify
 
 
 class General(commands.Cog):
@@ -24,7 +25,7 @@ class General(commands.Cog):
         await ctx.send(f"Pong! ```{self.bot.latency *  1000:.2f}ms```")
 
     @commands.command(aliases=["temp"])
-    async def temperature(self, ctx):
+    async def temperature(self, ctx: commands.Context):
         sensors = self.w.Sensor()
         sensors = sorted([sensor for sensor in sensors if sensor.SensorType in ["Temperature", "Fan"]], key=lambda sensor: sensor.name)
 
@@ -68,6 +69,35 @@ class General(commands.Cog):
             timestamp=datetime.datetime.now(),
         )
         await ctx.reply(embed=embed)
+
+    @commands.command(aliases=["sp"])
+    async def spotify(self, ctx: commands.Context, member: discord.Member = None):
+        """
+        Shows the spotify status of a member.
+
+        Usage:
+        ------
+        `{prefix}spotify`: *will show your spotify status*
+        `{prefix}spotify [member]`: *will show the spotify status of [member]*
+        """
+        member = ctx.guild.get_member((member or ctx.author).id)
+
+        spotify = Spotify(bot=self.bot, member=member)
+        result = await spotify.get_embed()
+        
+        if not result:
+            if member == ctx.author:
+                return await ctx.reply(
+                    "You are currently not listening to spotify!", mention_author=False
+                )
+            return await self.bot.reply(
+                ctx,
+                f"{member.mention} is not listening to Spotify",
+                mention_author=False,
+                allowed_mentions=discord.AllowedMentions(users=False),
+            )
+        file, view = result
+        await ctx.send(file=file, view=view)
 
 async def setup(bot):
     await bot.add_cog(General(bot))
