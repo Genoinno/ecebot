@@ -1,3 +1,5 @@
+import asyncio
+import aiohttp
 import discord
 import os
 import datetime
@@ -39,8 +41,9 @@ async def on_ready():
     bot.librarian_role = bot.get_guild(EC_SERVER_ID).get_role(LIBRARIAN_ROLE)
     bot.record_channel = bot.get_channel(RECORD_CHANNEL_ID)
     bot.bot_channel = bot.get_channel(BOT_CHANNEL_ID)
+    bot.session = aiohttp.ClientSession()
     # records = [msg.embeds[0] async for msg in (record_channel).history()]
-
+    
     await bot.load_extension("jishaku")
     print(f"Loaded jishaku!")
     for cog in os.listdir('./cogs'):
@@ -69,9 +72,7 @@ async def on_command_error(ctx: commands.Context, error):
         raise error
 
 
-
-
 if __name__=='__main__':
     os.environ["JISHAKU_NO_UNDERSCORE"] = "true"
     os.environ["JISHAKU_RETAIN"] = "true"
-    bot.run(os.environ["TOKEN"])
+    bot.run(os.environ["TOKEN"], reconnect=True)
