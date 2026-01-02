@@ -154,12 +154,9 @@ class Spotify:
         pog = act.album_cover_url
         name = "".join([x for x in act.title if x in s])
         name = name[0:21] + "..." if len(name) > 21 else name
-        print(pog)
         async with aiohttp.ClientSession() as session:
             rad = await session.get(pog)
-            print(rad)
             pic = BytesIO(await rad.read())
-            print("a")
             return await self.pil_process(pic, name, artists, time, time_at, track)
 
     async def get_embed(self) -> Tuple[discord.Embed, discord.File, discord.ui.View]:
@@ -175,12 +172,10 @@ class Spotify:
             lambda activity: isinstance(activity, discord.Spotify),
             self.member.activities,
         )
-        print(1)
         if not activity:
             return False
         url = activity.track_url
         image = await self.get_from_local(self.bot, activity)
-        print(2)
         view = discord.ui.View()
         view.add_item(
             discord.ui.Button(
@@ -190,5 +185,4 @@ class Spotify:
                 emoji="<:spotify:983984483755765790>",
             )
         )
-        print(3)
         return (image, view)
