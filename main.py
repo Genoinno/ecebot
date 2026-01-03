@@ -3,6 +3,7 @@ import aiohttp
 import discord
 import os
 import datetime
+import tmdbsimple as tmdb
 
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -22,6 +23,7 @@ from utils import (
 # Load the .env file, you need to make a .env file with the TOKEN variable
 load_dotenv()
 
+tmdb.API_KEY = os.environ["TMDB_API_KEY"]
 bot = commands.Bot(command_prefix="ec!", intents=discord.Intents.all())
 records: list[discord.Embed] = []
 books : list[Book] = []
