@@ -4,7 +4,16 @@ import asyncio
 import random
 
 from discord.ext import commands
-from models.db import BorrowingRecordDB, BookDB, BorrowingStatus, AsyncSessionLocal, engine, Base
+from models.db import (
+    BorrowingRecordDB, 
+    BookDB, 
+    BorrowingStatus,
+    WarningDB,
+    WarningType,
+    AsyncSessionLocal, 
+    engine, 
+    Base
+)
 from models import (
     Book,
     BookshelfDropdownView,
@@ -47,7 +56,7 @@ class Library(commands.Cog):
         self.bot = bot
 
     @commands.command(aliases=["lib", "perpustakaan", "perpus"])
-    async def library(self, ctx):
+    async def library(self, ctx: commands.Context):
         em = (
             discord.Embed(
                 title="English Club Library",
@@ -378,11 +387,39 @@ class Library(commands.Cog):
             await patron.send(embed=em, file=file)
 
     @commands.command()
-    async def rules(self, ctx):
+    async def rules(self, ctx: commands.Context):
         with open("policy.txt", "rb") as f:
             file = discord.File(f)
 
         await ctx.send(file=file)
+
+    @commands.command()
+    @commands.has_role(LIBRARIAN_ROLE)
+    async def warn(self, ctx: commands.Context, patron: discord.Member, status: int, fine: int, *, remarks: str):
+        async with AsyncSessionLocal() as session:
+            warning = await WarningDB.create(
+                session,
+                patron.id,
+                ctx.author.id,
+                WarningType.VERBAL if status == 1 else WarningType.BLACKLIST,
+                remarks,
+                fine,
+                False
+            )
+
+            
+            await ctx.send(f"**`[{warning.id}]`**\nI have warned **{patron.name}**\nCurrently have **{await WarningDB.get_total_active_warnings(session, patron.id)} active** warnings")
+
+    @commands.command()
+    @commands.has_role(LIBRARIAN_ROLE)
+    async def expire(self, ctx: commands.Context, warning_id: int):
+        async with AsyncSessionLocal() as session:
+            if await WarningDB.expire(
+                session,
+                warning_id
+            ):
+                await ctx.message.add_reaction("<:catyes:1441322976111890465>")
+        
 
 async def setup(bot):
     await bot.add_cog(Library(bot))
