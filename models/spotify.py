@@ -15,6 +15,8 @@ from cbvx import iml
 if TYPE_CHECKING:
     from discord.ext import commands
 
+#Thanks coding-bot-v6 :D 
+
 def executor() -> Callable[[Callable[..., Any]], Any]:
     def outer(func: Callable[..., Any]):
         @functools.wraps(func)
