@@ -203,7 +203,7 @@ class Library(commands.Cog):
         async with AsyncSessionLocal() as session:
             record = await BorrowingRecordDB.get_by_id(session, receipt_id)
             book = await BookDB.get_by_id(session, record.book_isbn, True)
-            name, phone_number, _ = record.remarks.split(":")
+            name, phone_number, kelas = record.remarks.split(":")
             
             if not record or not record.status == BorrowingStatus.PENDING:
                 return await ctx.send("Record does not exist or cannot be approved!")
@@ -218,7 +218,7 @@ class Library(commands.Cog):
             em = (
                 discord.Embed(
                     title=name,
-                    description=f"**{ctx.author.mention}** has borrowed a book!\n\n{name} • {phone_number}",
+                    description=f"**{ctx.author.mention}** has borrowed a book!\n\n{name} • {kelas} • {phone_number}",
                     color=discord.Color.yellow(),
                     timestamp=datetime.datetime.now(),
                 )
@@ -291,7 +291,7 @@ class Library(commands.Cog):
             await BorrowingRecordDB.renew(session, record.id)
 
             book = await BookDB.get_by_id(session, record.book_isbn, True)
-            name, phone_number, _ = record.remarks.split(":")
+            name, phone_number, kelas = record.remarks.split(":")
             file = discord.File(
                 build_renewed_receipt_image(
                     book,
@@ -304,7 +304,7 @@ class Library(commands.Cog):
             em = (
                 discord.Embed(
                     title=name,
-                    description=f"**{ctx.author.mention}** has renewed a book!\n\n{name} • {phone_number}",
+                    description=f"**{ctx.author.mention}** has renewed a book!\n\n{name} • {kelas} • {phone_number}",
                     color=discord.Color.yellow(),
                     timestamp=record.borrow_date,
                 )
@@ -351,7 +351,7 @@ class Library(commands.Cog):
             book = await BookDB.get_by_id(session, record.book_isbn, True)
             await BorrowingRecordDB.finish(session, record.id)
             await BookDB.borrow(session, book.isbn, True)
-            name, phone_number, _ = record.remarks.split(":")
+            name, phone_number, kelas = record.remarks.split(":")
             file = discord.File(
                 build_returned_receipt_image(
                     book,
@@ -363,7 +363,7 @@ class Library(commands.Cog):
             em = (
                 discord.Embed(
                     title=name,
-                    description=f"**{ctx.author.mention}** has returned a book!\n\n{name} • {phone_number}",
+                    description=f"**{ctx.author.mention}** has returned a book!\n\n{name} • {kelas} • {phone_number}",
                     color=discord.Color.yellow(),
                     timestamp=record.borrow_date,
                 )
@@ -374,7 +374,7 @@ class Library(commands.Cog):
             )
             msg = await self.bot.record_channel.fetch_message(record.message_id)
             await msg.reply(embed=em, file=file)
-            await ctx.send(f"`(,,⟡o⟡,,)` _`Woah!`_ Finished? already?! `( ˶° ᗜ°)!!`\nThat was fast! I hope you like the book!\n{patron.mention} Please come and return the book at the library after school!")
+            await ctx.send(f"`(,,⟡o⟡,,)` _`Woah!`_ Finished? already?! `( ˶° ᗜ°)!!`\nThat was fast! I hope you like the book!")
 
             file = discord.File(
                 build_returned_receipt_image(
