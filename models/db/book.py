@@ -1,3 +1,5 @@
+import json
+
 from .db import Base
 from models.book import Book
 from sqlalchemy import Column, Integer, String, Text, JSON, select
@@ -24,6 +26,25 @@ class BookDB(Base):
 
     borrow_records = relationship("BorrowingRecordDB", back_populates="book")
 
+    @staticmethod
+    async def add(session, emoji, json_payload):
+        book = BookDB(
+            isbn=json_payload["isbns"][0],
+            identifiers=json.dumps(json_payload["data"]["identifiers"]),
+            available=1,
+            url=json_payload["data"]["url"],
+            emoji=emoji,
+            publish_date=json_payload["publishDates"][0],
+            title=json_payload["data"]["title"],
+            description=json_payload["details"]["details"]["description"]["value"],
+            cover=json.dumps(json_payload["data"]["cover"]),
+            publishers=json.dumps(json_payload["details"]["details"]["publishers"]),
+            authors=json.dumps(json_payload["data"]["authors"])
+        )
+        
+        session.add(book)   
+        await session.commit()
+    
     @staticmethod
     async def get_by_id(session, isbn, parse_to_book):
         book = (await session.execute(select(BookDB).where(BookDB.isbn == isbn))).scalar()

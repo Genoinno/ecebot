@@ -2,6 +2,7 @@ import discord
 import datetime
 import asyncio
 import random
+import json
 
 from discord.ext import commands
 from models.db import (
@@ -419,6 +420,17 @@ class Library(commands.Cog):
                 warning_id
             ):
                 await ctx.message.add_reaction("<:catyes:1441322976111890465>")
+
+    @commands.command()
+    @commands.has_role(LIBRARIAN_ROLE)
+    async def add(self, ctx: commands.Context, emoji):
+        async with AsyncSessionLocal() as session:
+            with open("data.json", "r", encoding='utf-8') as f:
+                data = json.load(f)
+
+            
+            await BookDB.add(session, emoji, data["items"][-1])
+            await ctx.send("Done!")
         
 
 async def setup(bot):
