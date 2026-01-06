@@ -18,4 +18,3 @@ MESSAGE_SPLASH = [
     "One book coming right up! `◝(˶˃ ᵕ ˂˶) ◜♡`",
     "Sure thing pal! I hope you get a good read from this book `٩(^ᗜ^ )و ´-`",
 ]
-EMOJIES = ["🌃", "🐷", "🕯️", "🪖", "📜", "📜", "🖐️"]
