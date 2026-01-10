@@ -304,7 +304,7 @@ class Library(commands.Cog):
             em = (
                 discord.Embed(
                     title=name,
-                    description=f"**{ctx.author.mention}** has renewed a book!\n\n{name} • {kelas} • {phone_number}",
+                    description=f"**{patron.mention}** has renewed a book!\n\n{name} • {kelas} • {phone_number}",
                     color=discord.Color.yellow(),
                     timestamp=record.borrow_date,
                 )
@@ -363,7 +363,7 @@ class Library(commands.Cog):
             em = (
                 discord.Embed(
                     title=name,
-                    description=f"**{ctx.author.mention}** has returned a book!\n\n{name} • {kelas} • {phone_number}",
+                    description=f"**{patron.mention}** has returned a book!\n\n{name} • {kelas} • {phone_number}",
                     color=discord.Color.yellow(),
                     timestamp=record.borrow_date,
                 )
@@ -407,9 +407,8 @@ class Library(commands.Cog):
                 fine,
                 False
             )
-
             
-            await ctx.send(f"**`[{warning.id}]`**\nI have warned **{patron.name}**\nCurrently have **{await WarningDB.get_total_active_warnings(session, patron.id)} active** warnings")
+            await ctx.send(f"**`[#{warning.id}]`**\nI have warned **{patron.name}**\nCurrently have **{await WarningDB.get_total_active_warnings(session, patron.id)} active** warnings")
 
     @commands.command()
     @commands.has_role(LIBRARIAN_ROLE)
@@ -431,7 +430,19 @@ class Library(commands.Cog):
             
             await BookDB.add(session, emoji, data["items"][-1])
             await ctx.send("Done!")
-        
+
+    @commands.command()
+    @commands.has_role(LIBRARIAN_ROLE)
+    async def fine(self, ctx: commands.Context, member: discord.Member):
+        async with AsyncSessionLocal() as session:
+            warnings = await WarningDB.get_active_warnings(session, member.id)
+            if not warnings:
+                return await ctx.send(f"{member.name} does not have any active warnings")
+            
+            fine = 0
+            for warning in warnings:
+                fine += warning.fine
+            await ctx.send(f"{ctx.author.name} Has **Rp {fine:,} fine** ")
 
 async def setup(bot):
     await bot.add_cog(Library(bot))
