@@ -3,7 +3,7 @@ import datetime
 
 from .db import Base
 from dotenv import load_dotenv
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Integer, String, Text, Enum, desc, insert, select
+from sqlalchemy import BigInteger, Column, DateTime, Integer, Text, Enum, desc, insert, select
 from sqlalchemy.orm import relationship
 from enum import Enum as PyEnum
 
@@ -15,7 +15,6 @@ class WarningType(str, PyEnum):
     VERBAL      = "verbal"  
     BLACKLIST   = "blacklist"
     
-    
 class WarningDB(Base):
     __tablename__ = 'warnings'
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -23,7 +22,8 @@ class WarningDB(Base):
     librarian_id = Column(BigInteger, nullable=False)
     status = Column(Enum(WarningType), default=WarningType.VERBAL)
     remarks = Column(Text, nullable=True)
-    datetime = Column(DateTime, default=datetime.datetime.now(datetime.timezone.utc))
+    datetime = Column(DateTime, default=datetime.datetime.now()) 
+    expired_datetime = Column(DateTime, nullable=True, default=None) 
     fine = Column(Integer, nullable=False)
     expired = Column(Integer)
 
@@ -57,17 +57,21 @@ class WarningDB(Base):
         return result.scalar_one_or_none()
     
     @staticmethod
-    async def get_total_active_warnings(session, patron_id):
-        result = await session.execute(
+    async def get_active_warnings(session, patron_id):
+        return (await session.execute(
             select(WarningDB)
             .where(WarningDB.patron_id == patron_id)
             .where(WarningDB.expired == False)
-        )
-        return len(result.scalars().all())
+        )).scalars().all()
+    
+    @staticmethod
+    async def get_total_active_warnings(session, patron_id):
+        return len((await WarningDB.get_active_warnings(session, patron_id)))
     
     @staticmethod
     async def expire(session, id):
         warning = await WarningDB.get_by_id(session, id)
         warning.expired = True
+        warning.expired_datetime = datetime.datetime.now()
         await session.commit()
         return True
