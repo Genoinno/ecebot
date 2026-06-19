@@ -1,7 +1,9 @@
 import discord
+import os
 import datetime
 import wmi
 
+from openrouter import OpenRouter
 from discord.ext import commands
 from googletrans import Translator
 from models import Spotify
@@ -98,6 +100,27 @@ class General(commands.Cog):
             )
         file, view = result
         await ctx.send(file=file, view=view)
+
+    @commands.command()
+    @commands.is_owner()
+    async def test(self, ctx, channel_id, *, txt = ""):
+        await ctx.message.delete()
+        try:
+            int(channel_id)
+        except ValueError:
+            return await ctx.channel.send(channel_id + " " + txt)
+        await (self.bot.get_channel(int(channel_id))).send(txt)
+
+    @commands.command()
+    async def chat(self, ctx, *, q):
+        async with OpenRouter(
+            api_key=os.environ["OPENROUTER_API_KEY"]
+        ) as client:
+            response = await client.chat.send_async(
+                model="mistralai/mistral-7b-instruct-v0.1",
+                messages=[{"role": "user", "content": q}]
+            )
+            await ctx.send(response.choices[0].message.content)
 
 async def setup(bot):
     await bot.add_cog(General(bot))

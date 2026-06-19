@@ -88,7 +88,7 @@ class Library(commands.Cog):
     @commands.command(aliases=["bor", "minjem", "minjam"])
     @commands.cooldown(1, 60, commands.BucketType.default)
     async def borrow(self, ctx: commands.Context):
-        has_role = self.patron_role in ctx.author.roles
+        has_role = self.bot.patron_role in ctx.author.roles
         channel = self.bot.record_channel
         check_author = lambda inter: inter.user == ctx.author
         modal_check = (
@@ -112,7 +112,7 @@ class Library(commands.Cog):
                 msg: discord.Message = await ctx.send(
                     f"**`[{step}/{last_step}]`** Let's get started!\nOur policy helps to ensure qualities of our services to patrons. Please confirm our attached policy by pressing the green button bellow!",
                     file=file,
-                    view=AgreementView(self, ctx.author),
+                    view=AgreementView(ctx.author),
                 )
                 step += 1
                 await asyncio.sleep(1)
@@ -181,7 +181,7 @@ class Library(commands.Cog):
             await BookDB.borrow(session, book.isbn)
             await BorrowingRecordDB.create(
                 session,
-                int(self, ctx.author.id),
+                int(ctx.author.id),
                 book.isbn,
                 f"{name}:{phone_number}:{kelas}"
             )
@@ -233,7 +233,7 @@ class Library(commands.Cog):
                     member = (self.bot.get_guild(EC_SERVER_ID).get_member(record.user_id))
                     await (await self.bot.record_channel.fetch_message(record.message_id)).add_reaction("✅")
                     await member.send(f"Hi! We have approved your request\n**Please come to Language Room (Ruang Bahasa) afterschool!**", embed=em, file=file)
-                    await member.add_roles(self.patron_role)
+                    await member.add_roles(self.bot.patron_role)
                     await BorrowingRecordDB.approve_record_by_id(session, receipt_id)
                     return await ctx.send(f"Approved **{receipt_id}**!")
                 case _:
@@ -243,14 +243,14 @@ class Library(commands.Cog):
     @commands.has_role(LIBRARIAN_ROLE)
     @commands.cooldown(1, 60, commands.BucketType.default)
     async def denied(self, ctx: commands.Context, receipt_id: int):
-        await ctx.send(f"Denying **{receipt_id}**? \n**(yes, no)**")
-        msg = await self.bot.wait_for("message", check=lambda msg: msg.content.lower() in ["yes", "no"] and msg.channel == ctx.channel and msg.author == ctx.author)
-
         async with AsyncSessionLocal() as session:
             record = await BorrowingRecordDB.get_by_id(session, receipt_id)
 
             if not record or not record.status == BorrowingStatus.PENDING:
                 return await ctx.send("Record does not exist or cannot be denied!")
+            
+            await ctx.send(f"Denying **{receipt_id}**? \n**(yes, no)**")
+            msg = await self.bot.wait_for("message", check=lambda msg: msg.content.lower() in ["yes", "no"] and msg.channel == ctx.channel and msg.author == ctx.author)
             
             match msg.content:
                 case "yes":

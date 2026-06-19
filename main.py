@@ -19,32 +19,30 @@ from utils import (
     PATRON_ROLE,
     BOT_CHANNEL_ID
 )
+from openrouter import OpenRouter
+import os
 
 # Load the .env file, you need to make a .env file with the TOKEN variable
 load_dotenv()
 
 tmdb.API_KEY = os.environ["TMDB_API_KEY"]
 bot = commands.Bot(command_prefix="ec!", intents=discord.Intents.all())
-records: list[discord.Embed] = []
-books : list[Book] = []
 patron_role: discord.Role = None
 librarian_role: discord.Role = None
 record_channel: discord.TextChannel = None
 bot_channel: discord.TextChannel = None
 
-
 DEBUGING = False
 
 @bot.event
 async def on_ready():
-    global patron_role, librarian_role, records, record_channel, bot_channel
+    global patron_role, librarian_role, record_channel, bot_channel
 
     bot.patron_role = bot.get_guild(EC_SERVER_ID).get_role(PATRON_ROLE)
     bot.librarian_role = bot.get_guild(EC_SERVER_ID).get_role(LIBRARIAN_ROLE)
     bot.record_channel = bot.get_channel(RECORD_CHANNEL_ID)
     bot.bot_channel = bot.get_channel(BOT_CHANNEL_ID)
     bot.session = aiohttp.ClientSession()
-    # records = [msg.embeds[0] async for msg in (record_channel).history()]
     
     await bot.load_extension("jishaku")
     print(f"Loaded jishaku!")
