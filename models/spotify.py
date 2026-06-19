@@ -6,7 +6,9 @@ import string
 import aiohttp
 import discord
 import functools
+import re
 
+from cutlet import Cutlet
 from io import BytesIO
 from typing import TYPE_CHECKING, Any, Callable, Tuple
 from PIL import Image, ImageDraw, ImageFont
@@ -16,6 +18,17 @@ if TYPE_CHECKING:
     from discord.ext import commands
 
 #Thanks coding-bot-v6 :D 
+
+cutlet = Cutlet()
+
+def contains_japanese(text):
+    # Unicode ranges:
+    # \u3040-\u309F: Hiragana
+    # \u30A0-\u30FF: Katakana
+    # \u4E00-\u9FFF: Kanji (Common CJK Ideographs)
+    japanese_pattern = re.compile(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]')
+    # Returns True if a match is found, otherwise False
+    return bool(japanese_pattern.search(text))
 
 def executor() -> Callable[[Callable[..., Any]], Any]:
     def outer(func: Callable[..., Any]):
@@ -74,6 +87,7 @@ class Spotify:
 
         # Resize imput image to 300x300
         # TODO: Remove hardcoded domentions frpm cbvx
+        print(name)
         d = Image.open(pic).resize((300, 300))
         # Save to a buffer as PNG
         buffer = BytesIO()
@@ -92,8 +106,11 @@ class Spotify:
         # We get the base to write text on
         result = csp.get_base()
         base = Image.frombytes("RGB", (600, 300), result)
-
-        font0 = ImageFont.truetype("fonts/spotify.ttf", 35)  # For title
+        if contains_japanese(name):
+          name = cutlet.romaji(name)
+          font0 = ImageFont.truetype("fonts/MSMINCHO.ttf", 30)  # For title
+        else:
+          font0 = ImageFont.truetype("fonts/spotify.ttf", 35)  # For title
         font2 = ImageFont.truetype("fonts/spotify.ttf", 18)  # Time stamps
 
         draw = ImageDraw.Draw(
@@ -154,7 +171,7 @@ class Spotify:
             f"{int((time_at if time_at > 0 else 0) % 60):02d}"
         )
         pog = act.album_cover_url
-        name = "".join([x for x in act.title if x in s])
+        name = "".join([x for x in act.title])
         name = name[0:21] + "..." if len(name) > 21 else name
         async with aiohttp.ClientSession() as session:
             rad = await session.get(pog)
