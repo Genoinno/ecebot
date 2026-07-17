@@ -19,7 +19,6 @@ from utils import (
     PATRON_ROLE,
     BOT_CHANNEL_ID
 )
-from openrouter import OpenRouter
 import os
 
 # Load the .env file, you need to make a .env file with the TOKEN variable

@@ -3,10 +3,11 @@ import os
 import datetime
 import wmi
 
-from openrouter import OpenRouter
+
 from discord.ext import commands
 from googletrans import Translator
 from models import Spotify
+from google.antigravity import Agent, LocalAgentConfig, types
 
 
 class General(commands.Cog):
@@ -21,6 +22,8 @@ class General(commands.Cog):
         self.bot = bot
         self.translator = Translator()
         self.w = wmi.WMI(namespace=r"root\OpenHardwareMonitor")
+        self.agent = None
+        self.agent_context = None
 
     @commands.command()
     async def ping(self, ctx: commands.Context):
@@ -111,16 +114,47 @@ class General(commands.Cog):
             return await ctx.channel.send(channel_id + " " + txt)
         await (self.bot.get_channel(int(channel_id))).send(txt)
 
+    async def cog_load(self):
+        # Spawns a persistent agent when the cog is loaded to eliminate startup latency on command calls
+        config = LocalAgentConfig(
+            system_instructions="You are ecebot, a helpful discord bot for the Tecnical One English Club discord server. Your job is to answer general questions about any topic. You will use your skills accordingly and your action is limited to only reply the user with correct answer without harming the user verbally or physically. You will also answer the user with discord formatted text as your response will be sent to a discord TextChannel.",
+            api_key=os.environ.get("GEMINI_API_KEY"),
+            model="Gemini 2.5 Flash Lite"
+        )
+        self.agent_context = Agent(config)
+        self.agent = await self.agent_context.__aenter__()
+
+    async def cog_unload(self):
+        # Cleans up the persistent agent when the cog is unloaded
+        if self.agent_context:
+            await self.agent_context.__aexit__(None, None, None)
+
     @commands.command()
     async def chat(self, ctx, *, q):
-        async with OpenRouter(
-            api_key=os.environ["OPENROUTER_API_KEY"]
-        ) as client:
-            response = await client.chat.send_async(
-                model="mistralai/mistral-7b-instruct-v0.1",
-                messages=[{"role": "user", "content": q}]
-            )
-            await ctx.send(response.choices[0].message.content)
+        if not self.agent:
+            await ctx.send("The chatbot agent is not initialized yet or failed to start.")
+            return
+        
+        # We can send an immediate notification to let the user know we're processing
+        async with ctx.typing():
+            try:
+                response = await self.agent.chat(q)
+                full_message = ""
+                async for chunk in response:
+                    if isinstance(chunk, str):
+                        print(chunk)
+                        print("====================================================================================")
+                        full_message += chunk
+                
+                if full_message:
+                    # Discord limits messages to 2000 characters
+                    if len(full_message) > 2000:
+                        full_message = full_message[:1996] + "..."
+                    await ctx.reply(full_message)
+                else:
+                    await ctx.reply("The agent did not return a response.")
+            except Exception as e:
+                await ctx.send(f"An error occurred while communicating with Antigravity: {e}")
 
 async def setup(bot):
     await bot.add_cog(General(bot))
