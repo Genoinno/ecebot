@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from dataclasses import dataclass
-from typing import Literal, TYPE_CHECKING
+from typing import Literal, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from models.db import BookDB
@@ -20,13 +20,17 @@ class Book:
         self._publishers = json.loads(payload.publishers)
         self._authors =  json.loads(payload.authors)
         self._cover = json.loads(payload.cover)
-
+        
         try:
-            self.__identifiers.pop("isbn_10")
+            print(self.__identifiers)
+            self.__identifiers.pop("isbn_10", None)
+            self.__identifiers.pop("wikidata", None)
+            self.__identifiers.pop("lccn", None)
+            self.__identifiers.pop("oclc", None)
         except KeyError:
+            print("error")
             pass
 
-        print(self.__identifiers)
 
     def __repr__(self):
         return self.title

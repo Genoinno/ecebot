@@ -2,6 +2,8 @@ import discord
 import datetime
 import asyncio
 import random
+import aiohttp
+import os
 import json
 
 from discord.ext import commands
@@ -255,7 +257,7 @@ class Library(commands.Cog):
             match msg.content:
                 case "yes":
                     await (await self.bot.record_channel.fetch_message(record.message_id)).add_reaction("❌")
-                    await (self.bot.get_guild(EC_SERVER_ID).get_member(record.user_id)).send("")
+                    await (self.bot.get_guild(EC_SERVER_ID).get_member(record.user_id)).send("Hi There! Sorry, We have denied your request for borrowing a book. Please contact a librarian for further updates.")
                     await BookDB.borrow(session, record.book_isbn, True)
                     await BorrowingRecordDB.disapprove_record_by_id(session, int(receipt_id))
                     await ctx.send(f"Denied **{receipt_id}**!")
@@ -422,14 +424,28 @@ class Library(commands.Cog):
 
     @commands.command()
     @commands.has_role(LIBRARIAN_ROLE)
-    async def add(self, ctx: commands.Context, emoji):
-        async with AsyncSessionLocal() as session:
-            with open("data.json", "r", encoding='utf-8') as f:
-                data = json.load(f)
+    async def add(self, ctx: commands.Context, isbn, emoji):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"https://openlibrary.org/api/volumes/brief/json/{isbn}",
+                headers={
+                    "User-Agent": f"BookClubDigitalLibrary/1.0 ({os.environ['MY_EMAIL']})"
+                },
+            ) as response:
 
-            
-            await BookDB.add(session, emoji, data["items"][-1])
-            await ctx.send("Done!")
+                print("Status:", response.status)
+                data = await response.json()
+                _, v = list(data[isbn]["records"].items())[0]
+                with open("data.json", "r", encoding='utf-8') as f:
+                    data = json.load(f)
+                    data["items"].append(v)
+
+                with open("data.json", "w", encoding='utf-8') as f:
+                    json.dump(data, f)
+
+            async with AsyncSessionLocal() as DBsession:
+                await BookDB.add(DBsession, emoji, data["items"][-1])
+                await ctx.send("Done!")
 
     @commands.command()
     @commands.has_role(LIBRARIAN_ROLE)

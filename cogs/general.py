@@ -117,9 +117,9 @@ class General(commands.Cog):
     async def cog_load(self):
         # Spawns a persistent agent when the cog is loaded to eliminate startup latency on command calls
         config = LocalAgentConfig(
-            system_instructions="You are ecebot, a helpful discord bot for the Tecnical One English Club discord server. Your job is to answer general questions about any topic. You will use your skills accordingly and your action is limited to only reply the user with correct answer without harming the user verbally or physically. You will also answer the user with discord formatted text as your response will be sent to a discord TextChannel.",
+            system_instructions="You are ecebot, a helpful discord bot for the Tecnical One English Club discord server. Your job is to answer general questions about any topic. You will use your skills accordingly and your action is limited to only reply the user with correct answer without harming the user verbally or physically. You will also answer the user with discord formatted text as your response will be sent to a discord TextChannel. Your response must be below 2000 characters.",
             api_key=os.environ.get("GEMINI_API_KEY"),
-            model="Gemini 2.5 Flash Lite"
+            model="gemini-3.1-flash-lite"
         )
         self.agent_context = Agent(config)
         self.agent = await self.agent_context.__aenter__()
