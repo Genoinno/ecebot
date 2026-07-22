@@ -116,10 +116,14 @@ class General(commands.Cog):
 
     async def cog_load(self):
         # Spawns a persistent agent when the cog is loaded to eliminate startup latency on command calls
+        # Force the agent context to lock into your ecebot folder right at startup
+        project_path = r"C:\Users\User\Documents\project\ecebot"
+        os.chdir(project_path)
         config = LocalAgentConfig(
-            system_instructions="You are ecebot, a helpful discord bot for the Tecnical One English Club discord server. Your job is to answer general questions about any topic. You will use your skills accordingly and your action is limited to only reply the user with correct answer without harming the user verbally or physically. You will also answer the user with discord formatted text as your response will be sent to a discord TextChannel. Your response must be below 2000 characters.",
+            system_instructions="You are ecebot, a helpful discord bot for the Tecnical One English Club discord server. Your job is to answer general questions about any topic. You will use your skills accordingly and your action is limited to only reply the user with correct answer without harming the user verbally or physically. If you need to use tools to execute a command, view, or write something into the current working directory, make sure to check if the executed User's discord ID is 685082846993317953, if not, reply with the text: 'You do not have permission to do this.'. You will also answer the user with discord formatted text as your response will be sent to a discord TextChannel. Your response must be below 2000 characters.",
             api_key=os.environ.get("GEMINI_API_KEY"),
-            model="gemini-3.1-flash-lite"
+            model="gemini-3.1-flash-lite",
+            workspace=project_path
         )
         self.agent_context = Agent(config)
         self.agent = await self.agent_context.__aenter__()
@@ -138,7 +142,7 @@ class General(commands.Cog):
         # We can send an immediate notification to let the user know we're processing
         async with ctx.typing():
             try:
-                response = await self.agent.chat(q)
+                response = await self.agent.chat(f"{ctx.author.id} asked:" + q)
                 full_message = ""
                 async for chunk in response:
                     if isinstance(chunk, str):
