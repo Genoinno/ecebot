@@ -306,7 +306,7 @@ class Library(commands.Cog):
             em = (
                 discord.Embed(
                     title=name,
-                    description=f"**{patron.mention}** has renewed a book!\n\n{name} • {kelas} • {phone_number}",
+                    description=f"Renewed a book for **{patron.mention}**\n\n{name} • {kelas} • {phone_number}",
                     color=discord.Color.yellow(),
                     timestamp=record.borrow_date,
                 )
@@ -365,7 +365,7 @@ class Library(commands.Cog):
             em = (
                 discord.Embed(
                     title=name,
-                    description=f"**{patron.mention}** has returned a book!\n\n{name} • {kelas} • {phone_number}",
+                    description=f"Returned a book for **{patron.mention}**\n\n{name} • {kelas} • {phone_number}",
                     color=discord.Color.yellow(),
                     timestamp=record.borrow_date,
                 )
