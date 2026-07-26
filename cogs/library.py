@@ -256,18 +256,18 @@ class Library(commands.Cog):
             
             match msg.content:
                 case "yes":
-                    await (await self.bot.record_channel.fetch_message(record.message_id)).add_reaction("❌")
-                    await (self.bot.get_guild(EC_SERVER_ID).get_member(record.user_id)).send("Hi There! Sorry, We have denied your request for borrowing a book. Please contact a librarian for further updates.")
                     await BookDB.borrow(session, record.book_isbn, True)
                     await BorrowingRecordDB.disapprove_record_by_id(session, int(receipt_id))
                     await ctx.send(f"Denied **{receipt_id}**!")
-
+                    await (await self.bot.record_channel.fetch_message(record.message_id)).add_reaction("❌")
+                    denied_text = "Hi There! Sorry, We have denied your request for borrowing a book. Please contact @librarian for further notice."
+                    patron = self.bot.get_guild(EC_SERVER_ID).get_member(record.user_id)
                     try:
-                        dm = await (self.bot.get_guild(EC_SERVER_ID).get_member(record.user_id)).create_dm()
+                        dm = await (patron).create_dm()
                     except discord.Forbidden:
-                        await self.bot.bot_channel.send(f"{ctx.author.mention} Your request has been debued! (I cannot send you a dm)\n**Please come to **Ruang Bahasa** afterschool!")
+                        await self.bot.bot_channel.send(patron.mention + " " + denied_text)
                     else:
-                        await dm.send("Your request has been denied: Please contact the @librarian or open a ticket for more information!")
+                        await dm.send(denied_text)
         
                 case _:
                     return await ctx.send("Aborting...")
