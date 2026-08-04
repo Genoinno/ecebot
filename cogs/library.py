@@ -69,7 +69,6 @@ class Library(commands.Cog):
             .set_author(
                 name="English Club Committee Board", icon_url="attachment://EC.jpeg"
             )
-            .set_image(url="attachment://output.png")
         )
 
         async with AsyncSessionLocal() as session:
@@ -151,12 +150,19 @@ class Library(commands.Cog):
             renewed_date = datetime.datetime.now() + datetime.timedelta(days=7)
             await inter.response.send_message(f"`( ╹ -╹)? Hmm?` *{book.title}*? " + random.choice(MESSAGE_SPLASH), ephemeral=True)
 
-            latest_record = (await BorrowingRecordDB.get_latest(session))
-            latest_record_id = (latest_record.id if latest_record else 0) + 1
+           
+            await BookDB.borrow(session, book.isbn)
+            created_record = await BorrowingRecordDB.create(
+                session, 
+                int(ctx.author.id), 
+                book.isbn, 
+                f"{name}:{phone_number}:{kelas}"
+            )
+            record_id = created_record.id
 
             file = discord.File(
                 build_receipt_image(
-                    book, name, latest_record_id, renewed_date.strftime(TIMEFORMAT)
+                    book, name, record_id, renewed_date.strftime(TIMEFORMAT)
                 ),
                 "receipt.png",
             )
@@ -174,20 +180,12 @@ class Library(commands.Cog):
                 .set_thumbnail(url=book.get_cover_url("large"))
             )
 
-            await BookDB.borrow(session, book.isbn)
-            await BorrowingRecordDB.create(
-                session,
-                int(ctx.author.id),
-                book.isbn,
-                f"{name}:{phone_number}:{kelas}"
-            )
-
             message = await channel.send(self.bot.librarian_role.mention, embed=em, file=file)
             await msg.edit(
                 content=f"**`[{step}/{last_step}, Pending]`** Done! `(,,> ᴗ <,,)`\nYour request is being validated by us.\n**We will notify you shortly via DM**"
             )
 
-            await BorrowingRecordDB.add_message_id(session, latest_record_id, message.id)
+            await BorrowingRecordDB.add_message_id(session, record_id, message.id)
         
 
     @commands.command(aliases=["acc", "ac"])
