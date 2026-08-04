@@ -25,14 +25,7 @@ from models import (
     BorrowingForm,
     MESSAGE_SPLASH,
 )
-from models import (
-    Book,
-    BookshelfDropdownView,
-    AgreementView,
-    BorrowingDropdownView,
-    BorrowingForm,
-    MESSAGE_SPLASH,
-)
+
 from utils import (
     TIMEFORMAT,
     EC_SERVER_ID,
@@ -120,7 +113,8 @@ class Library(commands.Cog):
                 await asyncio.sleep(1)
 
                 inter: discord.Interaction = await self.bot.wait_for("interaction", check=check_author)
-                if not (inter.data["id"] == 2):
+                
+                if inter.data["custom_id"] != "agree":
                     return
 
                 await inter.response.edit_message(
@@ -199,17 +193,19 @@ class Library(commands.Cog):
     @commands.command(aliases=["acc", "ac"])
     @commands.has_role(LIBRARIAN_ROLE)
     @commands.cooldown(1, 60, commands.BucketType.default)
-    async def accept(self, ctx: commands.Context, receipt_id: int):
-        await ctx.send(f"Approving **{receipt_id}**? \n**(yes, no)**")
-        msg = await self.bot.wait_for("message", check=lambda msg: msg.content.lower() in ["yes", "no"] and msg.channel == ctx.channel and msg.author == ctx.author)
+    async def accept(self, ctx: commands.Context, member: discord.Member):
         async with AsyncSessionLocal() as session:
-            record = await BorrowingRecordDB.get_by_id(session, receipt_id)
-            book = await BookDB.get_by_id(session, record.book_isbn, True)
-            name, phone_number, kelas = record.remarks.split(":")
+            record = await BorrowingRecordDB.get_latest_by_user_id(session, member.id)
             
             if not record or not record.status == BorrowingStatus.PENDING:
                 return await ctx.send("Record does not exist or cannot be approved!")
-            
+
+            book = await BookDB.get_by_id(session, record.book_isbn, True)
+            name, phone_number, kelas = record.remarks.split(":")
+                        
+            await ctx.send(f"Approving for **{member.mention}**? \n**(yes, no)**")
+            msg = await self.bot.wait_for("message", check=lambda msg: msg.content.lower() in ["yes", "no"] and msg.channel == ctx.channel and msg.author == ctx.author)
+
             file = discord.File(
                 build_receipt_image(
                     book, name, record.id, record.due_date.strftime(TIMEFORMAT)
@@ -230,31 +226,42 @@ class Library(commands.Cog):
                 .set_thumbnail(url=book.get_cover_url("large"))
             )
             
-            match msg.content:
+            match msg.content.lower():
                 case "yes":
                     member = (self.bot.get_guild(EC_SERVER_ID).get_member(record.user_id))
                     await (await self.bot.record_channel.fetch_message(record.message_id)).add_reaction("✅")
-                    await member.send(f"Hi! We have approved your request\n**Please come to Language Room (Ruang Bahasa) afterschool!**", embed=em, file=file)
-                    await member.add_roles(self.bot.patron_role)
-                    await BorrowingRecordDB.approve_record_by_id(session, receipt_id)
-                    return await ctx.send(f"Approved **{receipt_id}**!")
+                    await BorrowingRecordDB.approve_record_by_id(session, record.id)
+
+                    if self.bot.patron_role not in member.roles:
+                        await member.add_roles(self.bot.patron_role)
+
+                    receipt_id = record.id
+                    try:
+                        dm = await (member).create_dm()
+                    except discord.Forbidden:
+                        await ctx.send(f"Approved **{receipt_id}**!\n{member.mention}Hi! We have approved your request\n**Please come to Language Room (Ruang Bahasa) afterschool!**")
+                    else:
+                        await ctx.send(f"Approved **{receipt_id}**!")
+                        await dm.send(f"Hi! We have approved your request\n**Please come to Language Room (Ruang Bahasa) afterschool!**", embed=em, file=file)
+
                 case _:
                     return await ctx.send("Aborting...")
                 
     @commands.command(aliases=["den"])
     @commands.has_role(LIBRARIAN_ROLE)
     @commands.cooldown(1, 60, commands.BucketType.default)
-    async def denied(self, ctx: commands.Context, receipt_id: int):
+    async def denied(self, ctx: commands.Context, member: discord.Member):
         async with AsyncSessionLocal() as session:
-            record = await BorrowingRecordDB.get_by_id(session, receipt_id)
+            record = await BorrowingRecordDB.get_latest_by_user_id(session, member.id)
 
             if not record or not record.status == BorrowingStatus.PENDING:
                 return await ctx.send("Record does not exist or cannot be denied!")
             
+            receipt_id = record.id
             await ctx.send(f"Denying **{receipt_id}**? \n**(yes, no)**")
             msg = await self.bot.wait_for("message", check=lambda msg: msg.content.lower() in ["yes", "no"] and msg.channel == ctx.channel and msg.author == ctx.author)
             
-            match msg.content:
+            match msg.content.lower():
                 case "yes":
                     await BookDB.borrow(session, record.book_isbn, True)
                     await BorrowingRecordDB.disapprove_record_by_id(session, int(receipt_id))
@@ -278,17 +285,18 @@ class Library(commands.Cog):
         await ctx.send(f"Renewing for **{patron.mention}**? \n**(yes, no)**")
         msg = await self.bot.wait_for("message", check=lambda msg: msg.content.lower() in ["yes", "no"] and msg.channel == ctx.channel and msg.author == ctx.author)
 
-        match msg.content:
+        match msg.content.lower():
             case "yes":
                 pass
             case _:
                 return await ctx.send("Aborting...")
             
         async with AsyncSessionLocal() as session:
-            record = (await BorrowingRecordDB.get_all_by_patron(session, patron.id))[0]
-        
-            if not record.status == BorrowingStatus.BORROWING:
+            records = await BorrowingRecordDB.get_all_by_patron(session, patron.id)
+            if not records:
                 return await ctx.send("They have not borrowed any book!")
+                
+            record = records[0]
             
             await BorrowingRecordDB.renew(session, record.id)
 
@@ -338,17 +346,18 @@ class Library(commands.Cog):
         await ctx.send(f"Are they **{patron.mention}** done with the book? \n**(yes, no)**")
         msg = await self.bot.wait_for("message", check=lambda msg: msg.content.lower() in ["yes", "no"] and msg.channel == ctx.channel and msg.author == ctx.author)
 
-        match msg.content:
+        match msg.content.lower():
             case "yes":
                 pass
             case _:
-                return await ctx.send("Aborting.================================..")
+                return await ctx.send("Aborting....")
             
         async with AsyncSessionLocal() as session:
-            record = (await BorrowingRecordDB.get_all_by_patron(session, patron.id))[0]
-        
-            if not record.status == BorrowingStatus.BORROWING:
+            records = await BorrowingRecordDB.get_all_by_patron(session, patron.id)
+            if not records:
                 return await ctx.send("They have not borrowed any book!")
+                
+            record = records[0]
             
             book = await BookDB.get_by_id(session, record.book_isbn, True)
             await BorrowingRecordDB.finish(session, record.id)
@@ -458,7 +467,7 @@ class Library(commands.Cog):
             fine = 0
             for warning in warnings:
                 fine += warning.fine
-            await ctx.send(f"{ctx.author.name} Has **Rp {fine:,} fine** ")
+            await ctx.send(f"{member.name} Has **Rp {fine:,} fine** ")
 
 async def setup(bot):
     await bot.add_cog(Library(bot))

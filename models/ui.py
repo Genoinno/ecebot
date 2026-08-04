@@ -6,7 +6,7 @@ from utils import RECORD_CHANNEL_ID, get_records_stats
 class LibraryDropdown(discord.ui.Select):
     def __init__(
         self,
-        medium: discord.Embed | discord.Message,
+        medium: discord.Embed | discord.Message | None,
         books: list[Book],
         user: discord.Member,
     ):

@@ -111,3 +111,16 @@ class BorrowingRecordDB(Base):
         record = await BorrowingRecordDB.get_by_id(session, id)
         record.message_id = message_id
         await session.commit()
+
+    @staticmethod
+    async def get_latest_by_user_id(session, user_id):
+        result = await session.execute(
+            select(BorrowingRecordDB)
+            .order_by(desc(BorrowingRecordDB.borrow_date))
+            .where(BorrowingRecordDB.user_id == user_id)
+            .limit(1)
+        )
+        record = result.scalar_one_or_none()
+        if record and record.status in [BorrowingStatus.BORROWING, BorrowingStatus.PENDING]:
+            return record
+        return None
