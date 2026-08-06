@@ -95,7 +95,7 @@ class General(commands.Cog):
                 return await ctx.reply(
                     "You are currently not listening to spotify!", mention_author=False
                 )
-            return await self.bot.reply(
+            return await ctx.reply(
                 ctx,
                 f"{member.mention} is not listening to Spotify",
                 mention_author=False,

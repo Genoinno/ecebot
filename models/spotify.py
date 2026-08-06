@@ -7,6 +7,7 @@ import aiohttp
 import discord
 import functools
 import re
+import urllib.parse
 
 from cutlet import Cutlet
 from io import BytesIO
@@ -41,6 +42,69 @@ def executor() -> Callable[[Callable[..., Any]], Any]:
         return inner
 
     return outer
+
+async def _make_album_image(title, artists, time, start, album_cover_url):
+    if isinstance(artists, list):
+        artists = ", ".join(artists)
+    elif not artists:
+        artists = ""
+    
+    artists = f"{artists[:36]}..." if len(artists) > 36 else artists
+    time_at = (
+        dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) - start
+    ).total_seconds()
+    track = time_at / time
+    time = f"{time // 60:02d}:{time % 60:02d}"
+    time_at = (
+        f"{int((time_at if time_at > 0 else 0) // 60):02d}:"
+        f"{int((time_at if time_at > 0 else 0) % 60):02d}"
+    )
+
+    if isinstance(title, list):
+        title = "".join([x for x in title])
+    
+    title = title[0:21] + "..." if len(title) > 21 else title
+    target_url = album_cover_url
+    if "media.discordapp.net/external/" in album_cover_url:
+        match = re.search(r'/(https?)/(.+)$', album_cover_url)
+        if match:
+            target_url = f"{match.group(1)}://{urllib.parse.unquote(match.group(2))}"
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    async with aiohttp.ClientSession(headers=headers) as session:
+        async with session.get(target_url) as rad:
+            if rad.status != 200 and target_url != album_cover_url:
+                async with session.get(album_cover_url) as fallback_rad:
+                    if fallback_rad.status != 200:
+                        raise ValueError(f"Failed to fetch image: HTTP {rad.status}")
+                    pic = BytesIO(await fallback_rad.read())
+                    return await Spotify.pil_process(pic, title, artists, time, time_at, track)
+            elif rad.status != 200:
+                raise ValueError(f"Failed to fetch image: HTTP {rad.status}")
+
+            pic = BytesIO(await rad.read())
+            return await Spotify.pil_process(pic, title, artists, time, time_at, track)
+
+
+    # s = tuple(f"{string.ascii_letters}{string.digits}{string.punctuation} ")
+        # artists = "".join([x for x in artists if x in s])
+        # artists = f"{artists[:36]}..." if len(artists) > 36 else artists
+        # time_at = (
+        #     dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) - act.start
+        # ).total_seconds()
+        # track = time_at / time
+        # time = f"{time // 60:02d}:{time % 60:02d}"
+        # time_at = (
+        #     f"{int((time_at if time_at > 0 else 0) // 60):02d}:"
+        #     f"{int((time_at if time_at > 0 else 0) % 60):02d}"
+        # )
+        # name = name[0:21] + "..." if len(name) > 21 else name
+        # async with aiohttp.ClientSession() as session:
+        #     rad = await session.get(pog)
+        #     pic = BytesIO(await rad.read())
+        #     return await self.pil_process(pic, name, artists, time, time_at, track)
 
 class Spotify:
     __slots__ = ("member", "bot", "embed", "regex", "headers", "counter")
@@ -141,7 +205,7 @@ class Spotify:
         output.seek(0)
         return discord.File(fp=output, filename="spotify.png")
 
-    async def get_from_local(self, bot, act: discord.Spotify) -> discord.File:
+    async def get_from_local(self, bot, act) -> discord.File:
         """
         Makes an image with spotify album cover with Pillow
 
@@ -154,29 +218,22 @@ class Spotify:
         Returns
         ----------------
         discord.File
-            contains the spotify image
+            contains the spotify/Youtube image
         """
-        s = tuple(f"{string.ascii_letters}{string.digits}{string.punctuation} ")
-        artists = ", ".join(act.artists)
-        artists = "".join([x for x in artists if x in s])
-        artists = f"{artists[:36]}..." if len(artists) > 36 else artists
-        time = act.duration.seconds
-        time_at = (
-            dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) - act.start
-        ).total_seconds()
-        track = time_at / time
-        time = f"{time // 60:02d}:{time % 60:02d}"
-        time_at = (
-            f"{int((time_at if time_at > 0 else 0) // 60):02d}:"
-            f"{int((time_at if time_at > 0 else 0) % 60):02d}"
-        )
-        pog = act.album_cover_url
-        name = "".join([x for x in act.title])
-        name = name[0:21] + "..." if len(name) > 21 else name
-        async with aiohttp.ClientSession() as session:
-            rad = await session.get(pog)
-            pic = BytesIO(await rad.read())
-            return await self.pil_process(pic, name, artists, time, time_at, track)
+        if isinstance(act, discord.Activity):
+            artist = act.state
+            time = int((act.end - act.start).total_seconds()) if (act.end and act.start) else 0
+            pog = act.large_image_url
+            title = act.details
+            
+        elif isinstance(act, discord.Spotify):
+            artist = act.artists
+            time = act.duration.seconds
+            pog = act.album_cover_url
+            title = act.title
+
+        return await _make_album_image(title, artist, time, act.start, pog)
+
 
     async def get_embed(self) -> Tuple[discord.Embed, discord.File, discord.ui.View]:
         """
@@ -187,21 +244,37 @@ class Spotify:
         Tuple[discord.Embed, discord.File]
             the embed object and the file with spotify image
         """
-        activity = discord.utils.find(
+        spotify_activity = discord.utils.find(
             lambda activity: isinstance(activity, discord.Spotify),
             self.member.activities,
         )
-        if not activity:
+
+        youtube_premium_activity = discord.utils.find(
+            lambda activity: isinstance(activity, discord.Activity) and activity.type == discord.ActivityType.listening,
+            self.member.activities,
+        )
+        if not spotify_activity and not youtube_premium_activity:
             return False
-        url = activity.track_url
-        image = await self.get_from_local(self.bot, activity)
+
+        if spotify_activity:
+            url = spotify_activity.track_url
+            image = await self.get_from_local(self.bot, spotify_activity)
+            label = "\u2007Open in Spotify"
+            emoji = "<:spotify:983984483755765790>"
+            
+        elif youtube_premium_activity:
+            url = getattr(youtube_premium_activity, "url", None) or "https://music.youtube.com"
+            image = await self.get_from_local(self.bot, youtube_premium_activity)
+            label = "\u2007Open in Youtube"
+            emoji = "▶️"
+
         view = discord.ui.View()
         view.add_item(
             discord.ui.Button(
                 url=url,
                 style=discord.ButtonStyle.green,
-                label="\u2007Open in Spotify",
-                emoji="<:spotify:983984483755765790>",
+                label=label,
+                emoji=emoji,
             )
         )
         return (image, view)
