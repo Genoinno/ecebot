@@ -244,7 +244,7 @@ class Spotify:
             emoji = "<:spotify:983984483755765790>"
             
         elif youtube_premium_activity:
-            url = getattr(youtube_premium_activity, "url", None) or "https://music.youtube.com"
+            url = getattr(youtube_premium_activity, "details_url", None) or "https://music.youtube.com"
             image = await self.get_from_local(self.bot, youtube_premium_activity)
             label = "\u2007Open in Youtube"
             emoji = "▶️"

@@ -96,7 +96,6 @@ class General(commands.Cog):
                     "You are currently not listening to spotify!", mention_author=False
                 )
             return await ctx.reply(
-                ctx,
                 f"{member.mention} is not listening to Spotify",
                 mention_author=False,
                 allowed_mentions=discord.AllowedMentions(users=False),
