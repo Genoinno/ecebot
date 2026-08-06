@@ -87,25 +87,6 @@ async def _make_album_image(title, artists, time, start, album_cover_url):
             pic = BytesIO(await rad.read())
             return await Spotify.pil_process(pic, title, artists, time, time_at, track)
 
-
-    # s = tuple(f"{string.ascii_letters}{string.digits}{string.punctuation} ")
-        # artists = "".join([x for x in artists if x in s])
-        # artists = f"{artists[:36]}..." if len(artists) > 36 else artists
-        # time_at = (
-        #     dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) - act.start
-        # ).total_seconds()
-        # track = time_at / time
-        # time = f"{time // 60:02d}:{time % 60:02d}"
-        # time_at = (
-        #     f"{int((time_at if time_at > 0 else 0) // 60):02d}:"
-        #     f"{int((time_at if time_at > 0 else 0) % 60):02d}"
-        # )
-        # name = name[0:21] + "..." if len(name) > 21 else name
-        # async with aiohttp.ClientSession() as session:
-        #     rad = await session.get(pog)
-        #     pic = BytesIO(await rad.read())
-        #     return await self.pil_process(pic, name, artists, time, time_at, track)
-
 class Spotify:
     __slots__ = ("member", "bot", "embed", "regex", "headers", "counter")
 
