@@ -5,6 +5,7 @@ import random
 import aiohttp
 import os
 import json
+import subprocess
 
 from discord.ext import commands
 from models.db import (
@@ -48,7 +49,7 @@ class Library(commands.Cog):
 
     """
 
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @commands.command(aliases=["lib", "perpustakaan", "perpus"])
@@ -340,7 +341,7 @@ class Library(commands.Cog):
 
     @commands.command(name="return")
     @commands.has_role(LIBRARIAN_ROLE)
-    async def _return(self, ctx: commands.Context, patron: discord.Member): #What if the user does not go to the library for returning the book.
+    async def _return(self, ctx: commands.Context, patron: discord.Member): #What if the user does not go to the library to return the book.
         await ctx.send(f"Are they **{patron.mention}** done with the book? \n**(yes, no)**")
         msg = await self.bot.wait_for("message", check=lambda msg: msg.content.lower() in ["yes", "no"] and msg.channel == ctx.channel and msg.author == ctx.author)
 
@@ -467,5 +468,28 @@ class Library(commands.Cog):
                 fine += warning.fine
             await ctx.send(f"{member.name} Has **Rp {fine:,} fine** ")
 
+    @commands.command()
+    @commands.has_role(LIBRARIAN_ROLE)
+    async def backup(self, ctx: commands.Context):
+        cmd = [
+            "mysqldump",
+            "-u", os.environ['MYSQL_USER'],
+            f"-p{os.environ['MYSQL_PASSWORD']}",
+            "ecebot"
+        ]
+        
+        f = rf"backups\{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.sql"
+        
+        try:
+            with open(f, "w", encoding="utf-8") as output_file:
+                subprocess.run(cmd, stdout=output_file, check=True)
+            print("Database backup successfully created!")
+            
+        except subprocess.CalledProcessError as e:
+            print(f"Error during backup execution: {e}")
+
+        await ctx.author.send(file=discord.File(f))
+        await ctx.send("I have sent a backup for today's current date in your DM!")
+        
 async def setup(bot):
     await bot.add_cog(Library(bot))

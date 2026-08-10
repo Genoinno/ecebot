@@ -4,6 +4,7 @@ import discord
 import os
 import datetime
 import tmdbsimple as tmdb
+import jishaku
 
 from discord.ext import commands
 from dotenv import load_dotenv

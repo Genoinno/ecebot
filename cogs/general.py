@@ -3,7 +3,6 @@ import os
 import datetime
 import wmi
 
-
 from discord.ext import commands
 from googletrans import Translator
 from models import Spotify
