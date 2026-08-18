@@ -2,11 +2,13 @@ import discord
 import os
 import datetime
 import wmi
+import aiohttp
 
 from discord.ext import commands
 from googletrans import Translator
 from models import Spotify
 from google.antigravity import Agent, LocalAgentConfig, types
+from utils import RANDOM_MEME_API
 
 
 class General(commands.Cog):
@@ -14,6 +16,8 @@ class General(commands.Cog):
     - Ping
     - Check Temperature
     - translate
+    - Chat ai command
+    - Generate random meme
 
     """
 
@@ -41,7 +45,6 @@ class General(commands.Cog):
             if key not in seen:
                 seen.add(key)
                 final.append(sensor)
-
         
         for sensor in final:
             txt += f"**{sensor.name}:**\n"
@@ -158,5 +161,46 @@ class General(commands.Cog):
             except Exception as e:
                 await ctx.send(f"An error occurred while communicating with Antigravity: {e}")
 
+    @commands.command()
+    @commands.cooldown(1, 1, commands.BucketType.guild)
+    async def meme(self, ctx, *, kw: str = ""):
+        if not kw:
+            kw = "english"
+
+        headers = {
+            "x-api-key": RANDOM_MEME_API
+        }
+
+        params = {
+            "keywords": kw
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"https://api.apileague.com/retrieve-random-meme", headers=headers,
+                params=params
+                ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    print(data)
+                    
+                    url = data.get("url", "")
+                    media_type = data.get("type", "").lower()
+
+                    if "preview.redd.it" in url:
+                        path = url.split("preview.redd.it")[-1].split("?")[0]
+                        url = f"https://i.redd.it{path}"
+
+                    description = data.get("description", "")
+
+                    if media_type.startswith("video") or url.endswith((".mp4", ".webm", ".mov")):
+                        content = f"**{description}**\n{url}" if description else url
+                        await ctx.send(content)
+                    else:
+                        em = discord.Embed(title=description, color=0x131416).set_image(url=url)
+                        await ctx.send(embed=em)
+                else:
+                    await ctx.send(f"Error: {response.status}")
+        
 async def setup(bot):
     await bot.add_cog(General(bot))

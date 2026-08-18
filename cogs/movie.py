@@ -27,10 +27,11 @@ class Movie(commands.Cog):
             result["overview"][:297] + f"[...]({url})") if len(result["overview"]) >= 300 else result["overview"],
             url=url,
             color=discord.Color.random()
+        ).set_image(
+            url=f"https://image.tmdb.org/t/p/w500{result["backdrop_path"]}"
+        ).set_thumbnail(
+            url=f"https://image.tmdb.org/t/p/w500{result["poster_path"]}"
         )
-
-        em.set_image(url=f"https://image.tmdb.org/t/p/w500{result["backdrop_path"]}")
-        em.set_thumbnail(url=f"https://image.tmdb.org/t/p/w500{result["poster_path"]}")
         
         await ctx.send(embed=em)
 
