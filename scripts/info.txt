@@ -1,0 +1,4 @@
+1. python
+2. rustc
+3. xampp
+4. mysql
