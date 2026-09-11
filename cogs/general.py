@@ -9,7 +9,7 @@ from googletrans import Translator
 from models import Spotify
 from google.antigravity import Agent, LocalAgentConfig, types
 from utils import RANDOM_MEME_API
-
+from pathlib import Path
 
 class General(commands.Cog):
     """This is a cog with general commands:
@@ -118,7 +118,7 @@ class General(commands.Cog):
     async def cog_load(self):
         # Spawns a persistent agent when the cog is loaded to eliminate startup latency on command calls
         # Force the agent context to lock into your ecebot folder right at startup
-        project_path = r"C:\Users\User\Documents\project\ecebot"
+        project_path = Path.home() / "Documents" / "project" / "ecebot"
         os.chdir(project_path)
         config = LocalAgentConfig(
             system_instructions="You are ecebot, a helpful discord bot for the Tecnical One English Club discord server. Your job is to answer general questions about any topic. You will use your skills accordingly and your action is limited to only reply the user with correct answer without harming the user verbally or physically. If you need to use tools to execute a command, view, or write something into the current working directory, make sure to check if the executed User's discord ID is 685082846993317953, if not, reply with the text: 'You do not have permission to do this.'. You will also answer the user with discord formatted text as your response will be sent to a discord TextChannel. Your response must be below 2000 characters.",
