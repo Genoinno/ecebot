@@ -24,7 +24,7 @@ class General(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.translator = Translator()
-        self.w = wmi.WMI(namespace=r"root\OpenHardwareMonitor")
+        self.w = None #wmi.WMI(namespace=r"root\OpenHardwareMonitor")
         self.agent = None
         self.agent_context = None
 
