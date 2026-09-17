@@ -106,9 +106,13 @@ class General(commands.Cog):
         await ctx.send(file=file, view=view)
 
     @commands.command()
-    @commands.is_owner()
     async def test(self, ctx, channel_id, *, txt = ""):
         await ctx.message.delete()
+        app_info = await ctx.bot.application_info()
+        owner_id = app_info.team.owner_id
+        id = os.environ["OWNER_ID"]
+        if ctx.author.id not in [int(id), owner_id]:
+          return await ctx.send("test")
         try:
             int(channel_id)
         except ValueError:
