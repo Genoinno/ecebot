@@ -106,22 +106,21 @@ class General(commands.Cog):
         await ctx.send(file=file, view=view)
 
     @commands.command()
-    async def test(self, ctx, channel_id, *, txt = ""):
+    async def test(self, ctx, channel: discord.TextChannel | str, *, txt = ""):
         await ctx.message.delete()
         app_info = await ctx.bot.application_info()
         owner_id = app_info.team.owner_id
         id = os.environ["OWNER_ID"]
         if ctx.author.id not in [int(id), owner_id]:
-          return await ctx.send("test")
-        try:
-            int(channel_id)
-        except ValueError:
-            return await ctx.channel.send(channel_id + " " + txt)
-        await (self.bot.get_channel(int(channel_id))).send(txt)
+            return await ctx.send("test")
+       
+        if isinstance(channel, discord.TextChannel):
+            await channel.send(txt)
+        else:
+            await ctx.send(channel + " " + txt)
 
     async def cog_load(self):
-        # Spawns a persistent agent when the cog is loaded to eliminate startup latency on command calls
-        # Force the agent context to lock into your ecebot folder right at startup
+      
         project_path = Path.home() / "Documents" / "project" / "ecebot"
         os.chdir(project_path)
         config = LocalAgentConfig(
