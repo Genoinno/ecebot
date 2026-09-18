@@ -11,7 +11,7 @@ English Club Library Policy
 (2.4) If any library equipment (e.g., book, bookmark, etc) is returned with severe damage (e.g., torn pages, water damage), the patron must either replace it or pay a fine determined by the DPS Captain.
 
 3.0 Service Usages
-(3.1) A patron may only borrow one book at a time for a period of 30 days. The book may be renewed contiuously unless it is requested by another patron. If a request occurs, the book must be returned within 7 ndays.
+(3.1) A patron may only borrow one book at a time for a period of 30 days. The book may be renewed contiuously unless it is requested by another patron. If a request occurs, the book must be returned within 7 days.
 (3.2) If a patron fails to return a book on time without renewal, they will be fined 10,000 Rupiah per week.
 (3.3) All books must be returned in two weeks before any extended school break (e.g., holidays, semester school breaks) lasting one week or more, or when no designated return days are available. Failure to comply will result in a fine of 10,000 Rupiah.
 (3.4) If a patron requests an already requested book of another patron that currently still in possession of another patron, the last requested patron has to wait 7 days after the book is in possession of a patron (refered to the last part of Section 3.1).
@@ -26,3 +26,7 @@ English Club Library Policy
 (5.2) All fines collected will be allocated for English Club needs and managed by the Treasurer of the English Club.
 (5.3) If a patron accumulates three violations either through punishments or fines, a blacklist will be imposed. This decision must be agreed upon by the Leader of the English Club and the DPS Captain, with a formal notice issued in the form of a letter.
 (5.4) The DPS Captain may issued a permanent blacklist to any patron with acceptable and rational reasons, with a formal notice issued in the form of a letter.
+
+---------------------------------------------------
+
+last updated:  May 20, 2025
